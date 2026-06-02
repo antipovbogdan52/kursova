@@ -872,18 +872,26 @@ st.markdown(
         margin-bottom: 20px;
     }
     .menu-card {
-        border: 1px solid #e6e6e6;
+        border: 1px solid #d0d7de;
         border-radius: 14px;
         padding: 18px 20px;
-        background: #fafafa;
+        background: #ffffff;
+        color: #111827;
         min-height: 145px;
     }
+    .menu-card h4, .menu-card p {
+        color: #111827;
+    }
     .step-card {
-        border: 1px solid #eeeeee;
+        border: 1px solid #d0d7de;
         border-radius: 12px;
         padding: 14px 16px;
         background: #ffffff;
+        color: #111827;
         min-height: 115px;
+    }
+    .step-card h4, .step-card p {
+        color: #111827;
     }
     .small-note {
         font-size: 14px;
@@ -971,26 +979,26 @@ if st.session_state["app_stage"] == "home":
 
     col1, col2, col3 = st.columns(3)
 
-with col1:
-    st.info(
-        "📂 **1. Завантаження даних**\n\n"
-        "Користувач завантажує CSV-файл SmartPhones Dataset, після чого програма "
-        "перевіряє його структуру та наявність обов’язкових стовпців."
-    )
+    with col1:
+        st.info(
+            "📂 **1. Дані**\n\n"
+            "Завантаження SmartPhones Dataset, перевірка структури CSV-файлу "
+            "та аналіз пропущених значень."
+        )
 
-with col2:
-    st.info(
-        "🧹 **2. Обробка та аналіз**\n\n"
-        "Застосунок очищує дані, формує числові ознаки, видаляє пропуски, "
-        "виконує IQR-очищення, статистику, графіки та кореляційний аналіз."
-    )
+    with col2:
+        st.info(
+            "🧹 **2. Аналіз**\n\n"
+            "Формування числових ознак, IQR-очищення, описова статистика, "
+            "графіки та кореляційний аналіз."
+        )
 
-with col3:
-    st.info(
-        "📈 **3. Прогнозування ціни**\n\n"
-        "На основі очищених даних будується МНК-регресія, обчислюються MAE, RMSE, R² "
-        "та прогнозується ринкова ціна нового смартфона."
-    )
+    with col3:
+        st.info(
+            "📈 **3. Прогноз**\n\n"
+            "Побудова множинної лінійної регресії методом МНК, оцінка MAE, "
+            "RMSE, R² та прогноз ціни нового смартфона."
+        )
 
     st.markdown("---")
 
@@ -1024,37 +1032,13 @@ if st.session_state["app_stage"] == "upload":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown(
-            """
-            <div class="step-card">
-            <h4>Крок 1</h4>
-            <p>Оберіть CSV-файл із характеристиками смартфонів.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.info("**Крок 1**\n\nОберіть CSV-файл із характеристиками смартфонів.")
 
     with col2:
-        st.markdown(
-            """
-            <div class="step-card">
-            <h4>Крок 2</h4>
-            <p>Програма перевірить потрібні стовпці та пропущені значення.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.info("**Крок 2**\n\nПрограма перевірить потрібні стовпці та пропущені значення.")
 
     with col3:
-        st.markdown(
-            """
-            <div class="step-card">
-            <h4>Крок 3</h4>
-            <p>Після завантаження відкриється повна аналітична панель.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.info("**Крок 3**\n\nПісля завантаження відкриється повна аналітична панель.")
 
     st.markdown("---")
 
