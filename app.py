@@ -857,36 +857,282 @@ def plot_actual_vs_predicted(y_test, y_pred):
 # 7. ІНТЕРФЕЙС STREAMLIT
 # ===============================================================
 
-st.title("📱 Аналіз впливу характеристик смартфонів на їхню ринкову ціну")
-
 st.markdown(
     """
-    Цей програмний застосунок створено для курсової роботи з аналітики даних.
-    Він дозволяє завантажити CSV-файл з характеристиками смартфонів,
-    очистити дані, виконати статистичний аналіз, побудувати графіки,
-    визначити кореляції та спрогнозувати ринкову ціну смартфона.
-    """
+    <style>
+    .main-title {
+        font-size: 34px;
+        font-weight: 700;
+        margin-bottom: 0px;
+    }
+    .subtitle {
+        font-size: 17px;
+        color: #555;
+        margin-top: 0px;
+        margin-bottom: 20px;
+    }
+    .menu-card {
+        border: 1px solid #e6e6e6;
+        border-radius: 14px;
+        padding: 18px 20px;
+        background: #fafafa;
+        min-height: 145px;
+    }
+    .step-card {
+        border: 1px solid #eeeeee;
+        border-radius: 12px;
+        padding: 14px 16px;
+        background: #ffffff;
+        min-height: 115px;
+    }
+    .small-note {
+        font-size: 14px;
+        color: #555;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
-with st.expander("ℹ️ Інформація про роботу", expanded=True):
-    st.write("**Тема:** Аналіз впливу характеристик смартфонів на їхню ринкову ціну")
-    st.write("**Мета:** дослідити вплив характеристик смартфонів на їхню ринкову ціну та побудувати модель прогнозування вартості.")
-    st.write("**Об'єкт дослідження:** ринок смартфонів, представлений набором даних з характеристиками та цінами пристроїв.")
-    st.write("**Предмет дослідження:** залежність ринкової ціни смартфонів від технічних і функціональних характеристик.")
-    st.write("**Методи:** описова статистика, IQR, EDA, кореляція Пірсона, множинна лінійна регресія, МНК, MAE, RMSE, R².")
-    st.write("**Особливість реалізації:** основні методи реалізовано власноруч без використання sklearn.")
+# ---------------------------------------------------------------
+# 7.1. СТАН І НАВІГАЦІЯ ЗАСТОСУНКУ
+# ---------------------------------------------------------------
 
-uploaded_file = st.file_uploader("Завантажте CSV-файл SmartPhones Dataset", type=["csv"])
+if "app_stage" not in st.session_state:
+    st.session_state["app_stage"] = "home"
 
-if uploaded_file is None:
-    st.warning("Завантажте CSV-файл, щоб почати аналіз.")
+if "raw_df" not in st.session_state:
+    st.session_state["raw_df"] = None
+
+if "uploaded_filename" not in st.session_state:
+    st.session_state["uploaded_filename"] = None
+
+
+def go_to_stage(stage_name):
+    st.session_state["app_stage"] = stage_name
+    st.rerun()
+
+
+def reset_uploaded_data():
+    st.session_state["raw_df"] = None
+    st.session_state["uploaded_filename"] = None
+    st.session_state["app_stage"] = "upload"
+    st.rerun()
+
+
+with st.sidebar:
+    st.header("📱 Меню застосунку")
+    st.write("**Курсова робота**")
+    st.write("Аналіз впливу характеристик смартфонів на їхню ринкову ціну")
+    st.markdown("---")
+
+    if st.button("🏠 Головне меню", use_container_width=True):
+        go_to_stage("home")
+
+    if st.button("📂 Завантаження CSV", use_container_width=True):
+        go_to_stage("upload")
+
+    if st.session_state["raw_df"] is not None:
+        if st.button("📊 Панель аналізу", use_container_width=True):
+            go_to_stage("analysis")
+
+    st.markdown("---")
+    st.write("**Етапи роботи програми:**")
+    st.write("1. Вхід у застосунок")
+    st.write("2. Завантаження CSV")
+    st.write("3. Перевірка структури")
+    st.write("4. Формування числових ознак")
+    st.write("5. Очищення даних")
+    st.write("6. Статистика та графіки")
+    st.write("7. МНК-регресія")
+    st.write("8. Прогноз ціни")
+    st.markdown("---")
+    st.info("Streamlit-вебзастосунок із графічним інтерфейсом користувача")
+
+
+# ---------------------------------------------------------------
+# 7.2. ГОЛОВНЕ МЕНЮ / СТАРТОВИЙ ЕКРАН
+# ---------------------------------------------------------------
+
+if st.session_state["app_stage"] == "home":
+    st.markdown('<div class="main-title">📱 Аналітична система прогнозування ціни смартфонів</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="subtitle">Вхід у застосунок → завантаження CSV → очищення → аналіз → регресійна модель → прогноз ціни</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        Це програмний застосунок, розроблений у межах курсової роботи з аналітики даних.
+        Він має графічний інтерфейс користувача і дозволяє виконати повний цикл аналізу:
+        від завантаження CSV-файлу до прогнозування ринкової ціни нового смартфона.
+        """
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown(
+            """
+            <div class="menu-card">
+            <h4>1. Дані</h4>
+            <p>Завантаження SmartPhones Dataset, перевірка структури CSV-файлу та аналіз пропущених значень.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col2:
+        st.markdown(
+            """
+            <div class="menu-card">
+            <h4>2. Аналіз</h4>
+            <p>Формування числових ознак, IQR-очищення, описова статистика, графіки та кореляції.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col3:
+        st.markdown(
+            """
+            <div class="menu-card">
+            <h4>3. Прогноз</h4>
+            <p>Побудова множинної лінійної регресії методом МНК, оцінка MAE, RMSE, R² та прогноз ціни.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown("---")
+
+    left, center, right = st.columns([1, 1.2, 1])
+    with center:
+        if st.button("🚀 Увійти в меню застосунку", use_container_width=True):
+            go_to_stage("upload")
+
+    with st.expander("ℹ️ Інформація про курсову роботу", expanded=False):
+        st.write("**Тема:** Аналіз впливу характеристик смартфонів на їхню ринкову ціну")
+        st.write("**Мета:** дослідити вплив характеристик смартфонів на їхню ринкову ціну та побудувати модель прогнозування вартості.")
+        st.write("**Об'єкт дослідження:** процес аналізу та прогнозування ринкової ціни смартфонів на основі їхніх технічних і функціональних характеристик.")
+        st.write("**Предмет дослідження:** методи, моделі та програмні засоби обробки даних, кореляційного аналізу, регресійного моделювання і прогнозування ринкової ціни смартфонів.")
+        st.write("**Методи:** описова статистика, IQR, EDA, кореляція Пірсона, множинна лінійна регресія, МНК, MAE, RMSE, R².")
+        st.write("**Особливість реалізації:** ключові обчислювальні етапи винесено в окремі функції програми.")
+
     st.stop()
 
-try:
-    raw_df = pd.read_csv(uploaded_file)
-except Exception as error:
-    st.error(f"Не вдалося прочитати CSV-файл: {error}")
+
+# ---------------------------------------------------------------
+# 7.3. ЕКРАН ЗАВАНТАЖЕННЯ CSV-ФАЙЛУ
+# ---------------------------------------------------------------
+
+if st.session_state["app_stage"] == "upload":
+    st.markdown('<div class="main-title">📂 Завантаження вхідного CSV-файлу</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="subtitle">На цьому етапі користувач додає SmartPhones Dataset для подальшої автоматизованої обробки.</div>',
+        unsafe_allow_html=True
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown(
+            """
+            <div class="step-card">
+            <h4>Крок 1</h4>
+            <p>Оберіть CSV-файл із характеристиками смартфонів.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col2:
+        st.markdown(
+            """
+            <div class="step-card">
+            <h4>Крок 2</h4>
+            <p>Програма перевірить потрібні стовпці та пропущені значення.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col3:
+        st.markdown(
+            """
+            <div class="step-card">
+            <h4>Крок 3</h4>
+            <p>Після завантаження відкриється повна аналітична панель.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown("---")
+
+    uploaded_file = st.file_uploader("📂 Завантажте CSV-файл SmartPhones Dataset", type=["csv"])
+
+    if uploaded_file is None:
+        st.warning("Завантажте CSV-файл, щоб перейти до аналізу.")
+        st.stop()
+
+    try:
+        st.session_state["raw_df"] = pd.read_csv(uploaded_file)
+        st.session_state["uploaded_filename"] = uploaded_file.name
+    except Exception as error:
+        st.error(f"Не вдалося прочитати CSV-файл: {error}")
+        st.stop()
+
+    st.success(f"CSV-файл **{uploaded_file.name}** успішно завантажено.")
+
+    raw_preview = st.session_state["raw_df"]
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Кількість рядків", raw_preview.shape[0])
+    with col2:
+        st.metric("Кількість стовпців", raw_preview.shape[1])
+
+    st.write("Попередній перегляд перших 5 рядків:")
+    st.dataframe(raw_preview.head(), use_container_width=True)
+
+    left, center, right = st.columns([1, 1.2, 1])
+    with center:
+        if st.button("📊 Перейти до аналітичної панелі", use_container_width=True):
+            go_to_stage("analysis")
+
     st.stop()
+
+
+# ---------------------------------------------------------------
+# 7.4. АНАЛІТИЧНА ПАНЕЛЬ
+# ---------------------------------------------------------------
+
+if st.session_state["raw_df"] is None:
+    st.warning("Спочатку потрібно завантажити CSV-файл.")
+    if st.button("Перейти до завантаження CSV"):
+        go_to_stage("upload")
+    st.stop()
+
+raw_df = st.session_state["raw_df"]
+
+st.markdown('<div class="main-title">📊 Аналітична панель прогнозування ціни смартфонів</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="subtitle">CSV → перевірка структури → очищення → статистика → кореляції → МНК-модель → прогноз ціни</div>',
+    unsafe_allow_html=True
+)
+
+if st.session_state["uploaded_filename"]:
+    st.caption(f"Поточний файл: {st.session_state['uploaded_filename']}")
+
+if st.button("🔄 Завантажити інший CSV-файл"):
+    reset_uploaded_data()
+
+st.markdown("### Панель керування аналізом")
+st.write(
+    "Програма автоматично виконує перевірку структури, формує числові ознаки, "
+    "очищує дані та готує їх до статистичного аналізу, кореляцій і прогнозування."
+)
 
 st.success("CSV-файл успішно завантажено.")
 
@@ -900,7 +1146,11 @@ with col1:
 with col2:
     st.metric("Кількість стовпців", raw_df.shape[1])
 
+st.write("Перші 5 рядків початкового набору даних:")
 st.dataframe(raw_df.head(), use_container_width=True)
+
+with st.expander("Показати весь початковий набір даних"):
+    st.dataframe(raw_df, use_container_width=True, height=450)
 
 required_columns = [
     "model", "price", "rating", "sim", "processor",
@@ -916,8 +1166,9 @@ if len(missing_required_columns) > 0:
 missing_report = raw_df[required_columns].isna().sum().reset_index()
 missing_report.columns = ["Стовпець", "Кількість пропусків"]
 
-st.subheader("2. Перевірка пропущених значень")
+st.subheader("2. Перевірка пропущених значень у початкових стовпцях")
 st.dataframe(missing_report, use_container_width=True)
+st.caption("Ця таблиця показує пропуски саме в сирих стовпцях початкового CSV-файлу.")
 
 try:
     clean_df, model_df, info = process_dataset(raw_df)
@@ -927,6 +1178,16 @@ except Exception as error:
 
 features = info["features"]
 
+parsed_missing_report = clean_df[["price"] + features].isna().sum().reset_index()
+parsed_missing_report.columns = ["Ознака", "Кількість пропусків"]
+
+st.subheader("2.1 Пропуски після формування числових ознак")
+st.dataframe(parsed_missing_report, use_container_width=True)
+st.caption(
+    "Ця таблиця показує пропуски вже після парсингу текстових характеристик у числові ознаки. "
+    "Саме ці пропуски пояснюють, чому після видалення неповних рядків кількість записів зменшується."
+)
+
 st.subheader("3. Обробка та очищення даних")
 
 col1, col2, col3 = st.columns(3)
@@ -935,18 +1196,28 @@ with col1:
     st.metric("Початково записів", raw_df.shape[0])
 
 with col2:
-    st.metric("Після видалення пропусків", info["after_dropna"])
+    st.metric("Після видалення пропусків", info["after_dropna"], delta=f"−{info['removed_missing']}")
 
 with col3:
-    st.metric("Після IQR-очищення", info["after_iqr"])
+    st.metric("Після IQR-очищення", info["after_iqr"], delta=f"−{info['removed_outliers']}")
 
-st.write(f"Вилучено через пропуски: **{info['removed_missing']}**")
-st.write(f"Вилучено цінових викидів: **{info['removed_outliers']}**")
-st.write(f"Нижня межа IQR для ціни: **{round(info['lower_price'], 2)}**")
-st.write(f"Верхня межа IQR для ціни: **{round(info['upper_price'], 2)}**")
+col4, col5 = st.columns(2)
+
+with col4:
+    st.info(f"Вилучено через пропуски: **{info['removed_missing']}** записів")
+    st.info(f"Вилучено цінових викидів: **{info['removed_outliers']}** записів")
+
+with col5:
+    st.write(f"Нижня межа IQR для ціни: **{round(info['lower_price'], 2)} INR**")
+    st.write(f"Верхня межа IQR для ціни: **{round(info['upper_price'], 2)} INR**")
+    st.write("Фінальна вибірка використовується для статистики, кореляційного аналізу, моделі та прогнозу.")
 
 st.subheader("4. Сформовані числові ознаки")
+st.write("Перші 10 рядків таблиці після перетворення текстових характеристик у числові ознаки:")
 st.dataframe(clean_df.head(10), use_container_width=True)
+
+with st.expander("Показати всю таблицю сформованих числових ознак"):
+    st.dataframe(clean_df, use_container_width=True, height=450)
 
 clean_csv = clean_df.to_csv(index=False).encode("utf-8-sig")
 
@@ -957,13 +1228,15 @@ st.download_button(
     mime="text/csv"
 )
 
+st.markdown("---")
+
 tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [
-        "Описова статистика",
-        "Графіки",
-        "Кореляції",
-        "Модель",
-        "Прогноз"
+        "📊 Описова статистика",
+        "📈 Графіки",
+        "🔗 Кореляції",
+        "🧮 Модель",
+        "📱 Прогноз"
     ]
 )
 
@@ -980,7 +1253,7 @@ with tab1:
     st.info(
         f"Середня ціна смартфона становить {round(mean_price, 2)} INR, "
         f"а медіанна ціна — {round(median_price, 2)} INR. "
-        f"Якщо середнє більше за медіану, це свідчить про правий хвіст розподілу цін."
+        f"Оскільки середнє більше за медіану, розподіл цін має правий хвіст."
     )
 
 
@@ -1117,6 +1390,11 @@ with tab5:
 
     model_info = train_model(model_df, features)
 
+    st.write(
+        "Введіть характеристики нового смартфона. Програма стандартизує ці значення так само, "
+        "як навчальні дані, і розрахує орієнтовну ринкову ціну за побудованою МНК-моделлю."
+    )
+
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -1158,7 +1436,7 @@ with tab5:
         "supports_card": supports_card
     }
 
-    if st.button("Спрогнозувати ціну"):
+    if st.button("🔮 Спрогнозувати ціну"):
         predicted_price = predict_new_phone(
             new_phone,
             features,
